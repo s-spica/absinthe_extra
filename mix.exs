@@ -4,7 +4,7 @@ defmodule AbsintheExtra.MixProject do
   def project do
     [
       app: :absinthe_extra,
-      version: "0.1.0",
+      version: "0.1.1",
       deps: deps(),
       docs: [main: "readme", extras: ["README.md"]],
       description: description(),
@@ -41,15 +41,16 @@ defmodule AbsintheExtra.MixProject do
 
   defp deps do
     [
-      {:absinthe, "~> 1.5"},
+      {:absinthe, "~> 1.6"},
+      {:absinthe_relay, "~> 1.5.0"},
       {:absinthe_phoenix, "~> 2.0"},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.23", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.26", only: :dev, runtime: false},
       {:excoveralls, "~> 0.10", only: :test},
       {:inch_ex, "~> 0.1", only: [:dev, :test], runtime: false},
       {:jason, "~> 1.2"},
-      {:phoenix, "~> 1.5"}
+      {:phoenix, "~> 1.6"}
     ]
   end
 end

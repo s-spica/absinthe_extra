@@ -2,10 +2,11 @@ defmodule AbsintheExtra.Support.TestSchema do
   @moduledoc false
 
   use Absinthe.Schema
+  use Absinthe.Relay.Schema, :modern
 
   query do
     field :user, :user do
-      resolve fn _, _ -> {:ok, %{name: "name", age: :one}} end
+      resolve fn _, _ -> {:ok, %{name: "name", age: :one, id: "id"}} end
     end
 
     field :argument_field_user, :argument_field_user do
@@ -16,18 +17,31 @@ defmodule AbsintheExtra.Support.TestSchema do
     field :interface_user, :interface_user do
       resolve fn _, _ -> {:ok, %{name: "name"}} end
     end
+
+    node field do
+      resolve fn
+        %{type: :user, id: id}, _ ->
+          {:ok, %{id: id, name: "name", age: :one}}
+      end
+    end
   end
 
-  ## query user
+  ## object user
 
   enum :age do
     value :one
     value :two
   end
 
-  object :user do
+  node object(:user) do
     field :name, non_null(:string)
     field :age, non_null(:age)
+  end
+
+  node interface do
+    resolve_type fn
+      _, _ -> :user
+    end
   end
 
   ## query argument_field_user

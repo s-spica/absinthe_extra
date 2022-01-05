@@ -55,5 +55,5 @@ end
 iex(1) > fields = fields(:user)
 iex(2) > fields = argument_fields(fields, name: [capitalize: false])
 iex(3) > query = graphql_query(:user, [id: 1], fields)
-iex(4) > assert %{name: "name"} == graphql_success(conn, "user", query)
+iex(4) > assert %{name: "name"} == graphql_success(conn, query)
 ```

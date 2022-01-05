@@ -26,6 +26,21 @@ defmodule AbsintheExtra.Case.QueryBuilder do
   end
 
   @doc """
+  Builds a Graphql query string.
+  """
+  @spec graphql_node_query(
+          query_id :: String.t(),
+          query_type :: atom,
+          query_fields :: keyword
+        ) :: String.t()
+  def graphql_node_query(id, type, fields) do
+    arg_str = build_args(id: id)
+    field_str = prepare_fields(_on: [{type, fields}])
+
+    "{node#{arg_str}#{field_str}}"
+  end
+
+  @doc """
   Same as `graphql_query/3`, but for mutations.
   """
   @spec graphql_mutation(
@@ -246,7 +261,6 @@ defmodule AbsintheExtra.Case.QueryBuilder do
 
   def paginated_fields(type, opts \\ [complexity: @complexity, schema: @schema]) do
     [
-      :total_count,
       edges: [:cursor, node: fields(type, opts)],
       page_info: [
         :start_cursor,
