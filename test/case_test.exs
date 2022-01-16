@@ -18,11 +18,18 @@ defmodule AbsintheExtra.CaseTest do
   describe "query_success/2" do
     test "query: node", %{conn: conn} do
       fields = fields(:user)
-      id = Absinthe.Relay.Node.to_global_id(:user, "id", TestSchema)
-      query = graphql_node_query(id, :user, fields)
+      global_id = Absinthe.Relay.Node.to_global_id(:user, "id", TestSchema)
+      query = graphql_node_query(:user, "id", fields)
 
-      assert "{node(id: \"#{id}\") {... on User  {age, id, name}}}" == query
-      assert %{name: "name", age: "ONE", id: id} == graphql_success(conn, query)
+      assert "{node(id: \"#{global_id}\") {... on User  {age, id, name}}}" ==
+               query
+
+      assert %{
+               name: "name",
+               age: "ONE",
+               id: global_id
+             } ==
+               graphql_success(conn, query)
     end
 
     test "query: user", %{conn: conn} do

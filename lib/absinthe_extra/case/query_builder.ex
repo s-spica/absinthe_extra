@@ -29,12 +29,13 @@ defmodule AbsintheExtra.Case.QueryBuilder do
   Builds a Graphql query string.
   """
   @spec graphql_node_query(
-          query_id :: String.t(),
           query_type :: atom,
+          query_id :: String.t(),
           query_fields :: keyword
         ) :: String.t()
-  def graphql_node_query(id, type, fields) do
-    arg_str = build_args(id: id)
+  def graphql_node_query(type, id, fields, opts \\ []) do
+    global_id = Absinthe.Relay.Node.to_global_id(type, id, fetch_schema(opts))
+    arg_str = build_args(id: global_id)
     field_str = prepare_fields(_on: [{type, fields}])
 
     "{node#{arg_str}#{field_str}}"
