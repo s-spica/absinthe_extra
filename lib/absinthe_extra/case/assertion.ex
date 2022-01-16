@@ -27,18 +27,29 @@ defmodule AbsintheExtra.Case.Assertion do
     response["data"] |> Enum.at(0) |> (fn {_, v} -> v end).() |> key_to_atom()
   end
 
+  @spec graphql_success(Plug.Conn.t(), query :: String.t()) :: map
   def graphql_node_success(conn, query) do
     data = graphql_success(conn, query)
 
-    edges_data(data)
+    unpaginate_fields(data)
   end
 
-  def edges_data(edges), do: edges |> Map.get(:edges) |> Enum.map(& &1.node)
+  @spec unpaginate_fields(map) :: [any]
+  def unpaginate_fields(connection) do
+    assert %{edges: edges} = connection
+
+    edges
+    |> Enum.map(fn edge ->
+      assert %{node: node} = edge
+      node
+    end)
+  end
 
   defp run_query(conn, query, opts) do
     path = Keyword.get(opts, :path, @path)
+    body = Keyword.get(opts, :extra_body, %{})
 
-    post(conn, path, %{"query" => query})
+    post(conn, path, Map.merge(%{"query" => query}, body))
   end
 
   defp key_to_atom(values) when is_list(values),

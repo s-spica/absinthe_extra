@@ -57,4 +57,10 @@ defmodule AbsintheExtra.CaseTest do
       assert %{name: "name"} == graphql_success(conn, query)
     end
   end
+
+  describe "unpaginate_fields/1" do
+    test "extract nodes" do
+      assert [%{id: 1}] == unpaginate_fields(%{edges: [%{node: %{id: 1}}]})
+    end
+  end
 end
