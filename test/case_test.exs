@@ -70,4 +70,12 @@ defmodule AbsintheExtra.CaseTest do
       assert [%{id: 1}] == unpaginate_fields(%{edges: [%{node: %{id: 1}}]})
     end
   end
+
+  describe "drop_fields/2" do
+    test "drop nested fields" do
+      assert [_on: [interface_concrete_user: [:name]]] ==
+               fields(:interface_user, complexity: 2, schema: TestSchema)
+               |> drop_fields([:user])
+    end
+  end
 end

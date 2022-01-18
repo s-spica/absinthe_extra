@@ -174,9 +174,6 @@ defmodule AbsintheExtra.Case.QueryBuilder do
       |> Enum.map(fn
         {identifier, type} ->
           to_list_item(identifier, type, next_opts)
-
-        _ ->
-          :skip
       end)
       |> exclude_skip()
     end
@@ -258,6 +255,42 @@ defmodule AbsintheExtra.Case.QueryBuilder do
       field ->
         field
     end)
+  end
+
+  @doc """
+  Drop query fields
+  """
+  @spec drop_fields(query_fields :: keyword, drop_fields :: [atom]) ::
+          keyword
+  def drop_fields(fields, keys)
+      when is_list(fields) and is_list(keys) do
+    Enum.reduce(keys, fields, fn key, acc ->
+      drop_field(acc, key)
+    end)
+  end
+
+  defp drop_field(fields, key)
+       when is_list(fields) and is_atom(key) do
+    Enum.map(fields, fn
+      {:_on, field, _} when field == key ->
+        :_skip
+
+      {:_on, field, children} when field != key ->
+        drop_field(children, key)
+
+      {field, _} when field == key ->
+        :_skip
+
+      {field, children} when field != key ->
+        {field, drop_field(children, key)}
+
+      field when field == key ->
+        :_skip
+
+      field ->
+        field
+    end)
+    |> exclude_skip()
   end
 
   def paginated_fields(type, opts \\ [complexity: @complexity, schema: @schema]) do
