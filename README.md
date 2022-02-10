@@ -57,3 +57,15 @@ iex(2) > fields = argument_fields(fields, name: [capitalize: false])
 iex(3) > query = graphql_query(:user, [id: 1], fields)
 iex(4) > assert %{name: "name"} == graphql_success(conn, query)
 ```
+
+## Phase Introspection
+
+this phase is to block introspection
+
+### How to use
+
+```elixir
+    forward "/graphql", Absinthe.Plug,
+      schema: Schema,
+      pipeline: {Phase.Introspection, :pipeline}
+```
