@@ -85,4 +85,18 @@ defmodule AbsintheExtra.CaseTest do
                |> drop_fields([:name])
     end
   end
+
+  describe "pick_fields/2" do
+    test "pick a field" do
+      assert [:name] ==
+               fields(:nested_field_user, complexity: 2, schema: TestSchema)
+               |> pick_fields([:name])
+    end
+
+    test "pick nested fields" do
+      assert [user: [:name]] ==
+               fields(:nested_field_user, complexity: 2, schema: TestSchema)
+               |> pick_fields(user: [:name])
+    end
+  end
 end

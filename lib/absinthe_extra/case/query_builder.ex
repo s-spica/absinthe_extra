@@ -26,7 +26,8 @@ defmodule AbsintheExtra.Case.QueryBuilder do
   end
 
   @doc """
-  Builds a Graphql query string.
+  Builds a Graphql Relay `node` query string.
+  `query_id` is converted to the Global ID.
   """
   @spec graphql_node_query(
           query_type :: atom,
@@ -258,6 +259,74 @@ defmodule AbsintheExtra.Case.QueryBuilder do
   end
 
   @doc """
+  Pick query fields
+
+  key can be specified nested fields `[:field, nested: [:field]]`
+  """
+  @spec pick_fields(query_fields :: keyword, drop_fields :: [atom]) ::
+          keyword
+  def pick_fields(fields, keys)
+      when is_list(fields) and is_list(keys) do
+    Enum.map(fields, fn
+      {:_on, field, children} ->
+        keys
+        |> Enum.find(fn
+          {key, _} -> key == field
+          key when is_atom(key) -> key == field
+        end)
+        |> case do
+          nil ->
+            :_skip
+
+          key when is_atom(key) ->
+            {:_on, field, children}
+
+          {_, children_keys} ->
+            {:_on, field, pick_fields(children, children_keys)}
+        end
+
+      {:query, field, arg, children} ->
+        keys
+        |> Enum.find(fn
+          {key, _} -> key == field
+          key when is_atom(key) -> key == field
+        end)
+        |> case do
+          nil ->
+            :_skip
+
+          key when is_atom(key) ->
+            {:query, field, arg, children}
+
+          {_, children_keys} ->
+            {:query, field, arg, pick_fields(children, children_keys)}
+        end
+
+      {field, children} ->
+        keys
+        |> Enum.find(fn
+          {key, _} -> key == field
+          key when is_atom(key) -> key == field
+        end)
+        |> case do
+          nil -> :_skip
+          key when is_atom(key) -> {field, children}
+          {_, children_keys} -> {field, pick_fields(children, children_keys)}
+        end
+
+      field ->
+        keys =
+          Enum.map(keys, fn
+            {key, _} -> key
+            key when is_atom(key) -> key
+          end)
+
+        if field in keys, do: field, else: :_skip
+    end)
+    |> exclude_skip()
+  end
+
+  @doc """
   Drop query fields
   """
   @spec drop_fields(query_fields :: keyword, drop_fields :: [atom]) ::
@@ -299,6 +368,9 @@ defmodule AbsintheExtra.Case.QueryBuilder do
     |> exclude_skip()
   end
 
+  @doc """
+  Same as `fields/2` but with relay pagination fields
+  """
   def paginated_fields(type, opts \\ [complexity: @complexity, schema: @schema]) do
     [
       edges: [:cursor, node: fields(type, opts)],

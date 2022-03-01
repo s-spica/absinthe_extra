@@ -18,6 +18,10 @@ defmodule AbsintheExtra.Support.TestSchema do
       resolve fn _, _ -> {:ok, %{name: "name"}} end
     end
 
+    field :nested_field_user, :nested_field_user do
+      resolve fn _, _ -> {:ok, %{name: "name", user: %{name: "name"}}} end
+    end
+
     node field do
       resolve fn
         %{type: :user, id: id}, _ ->
@@ -26,16 +30,11 @@ defmodule AbsintheExtra.Support.TestSchema do
     end
   end
 
-  ## object user
+  ## node user
 
   enum :age do
     value :one
     value :two
-  end
-
-  node object(:user) do
-    field :name, non_null(:string)
-    field :age, non_null(:age)
   end
 
   node interface do
@@ -44,7 +43,12 @@ defmodule AbsintheExtra.Support.TestSchema do
     end
   end
 
-  ## query argument_field_user
+  node object(:user) do
+    field :name, non_null(:string)
+    field :age, non_null(:age)
+  end
+
+  ## argument user
 
   object :argument_field_user do
     field :name, :string do
@@ -52,7 +56,7 @@ defmodule AbsintheExtra.Support.TestSchema do
     end
   end
 
-  ## query interface_user
+  ## interface user
 
   interface :interface_user do
     field :name, :string
@@ -64,5 +68,12 @@ defmodule AbsintheExtra.Support.TestSchema do
     field :user, :interface_user, resolve: fn _, _ -> {:ok, %{name: "name"}} end
 
     interface :interface_user
+  end
+
+  ## nested user
+
+  object :nested_field_user do
+    field :name, :string
+    field :user, :nested_field_user
   end
 end
