@@ -13,8 +13,7 @@ defmodule AbsintheExtra.Case.Assertion do
     conn = run_query(conn, query, opts)
     response = json_response(conn, 200)
 
-    assert response["data"] == nil
-    response["errors"]
+    %{errors: response["errors"], data: response["data"]}
   end
 
   @spec graphql_success(Plug.Conn.t(), query :: String.t()) :: map
