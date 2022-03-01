@@ -278,6 +278,12 @@ defmodule AbsintheExtra.Case.QueryBuilder do
       {:_on, field, children} when field != key ->
         drop_field(children, key)
 
+      {:query, field, _, _} when field == key ->
+        :_skip
+
+      {:query, field, arg, children} when field != key ->
+        {:query, field, arg, drop_field(children, key)}
+
       {field, _} when field == key ->
         :_skip
 

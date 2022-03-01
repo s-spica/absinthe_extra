@@ -77,5 +77,12 @@ defmodule AbsintheExtra.CaseTest do
                fields(:interface_user, complexity: 2, schema: TestSchema)
                |> drop_fields([:user])
     end
+
+    test "drop query fields" do
+      assert [] ==
+               fields(:argument_field_user, complexity: 2, schema: TestSchema)
+               |> argument_fields(name: [child: true])
+               |> drop_fields([:name])
+    end
   end
 end
