@@ -4,7 +4,7 @@ defmodule AbsintheExtra.MixProject do
   def project do
     [
       app: :absinthe_extra,
-      version: "0.1.9",
+      version: "0.1.10",
       deps: deps(),
       docs: [main: "readme", extras: ["README.md"]],
       description: description(),

@@ -1,31 +1,34 @@
-defmodule Absinthe.Extra.NotationTest do
+defmodule Absinthe.Extra.MiddlewareTest do
   use ExUnit.Case, async: true
 
   defmodule TestPolicy do
-    import Absinthe.Extra.Notation.Policy.Schema
+    use Absinthe.Extra.Middleware.Policy
 
-    def view_allow(resolution, _) do
-      allow(resolution)
+    import Absinthe.Extra.Middleware.Policy,
+      only: [policy_allow: 1, policy_deny: 1]
+
+    def allow(resolution, _) do
+      policy_allow(resolution)
     end
 
-    def view_deny(resolution, _) do
-      deny(resolution)
+    def deny(resolution, _) do
+      policy_deny(resolution)
     end
   end
 
   defmodule TestSchema do
     use Absinthe.Schema
 
-    import Absinthe.Extra.Notation.Policy
+    import Absinthe.Extra.Middleware.Policy, only: [policy: 1]
 
     query do
       field :allow, :boolean do
-        policy TestPolicy, :view_allow
+        policy TestPolicy
         resolve fn _, _ -> {:ok, true} end
       end
 
       field :deny, :boolean do
-        policy TestPolicy, :view_deny
+        policy TestPolicy
         resolve fn _, _ -> {:ok, true} end
       end
     end
