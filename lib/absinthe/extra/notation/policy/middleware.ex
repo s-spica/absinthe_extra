@@ -1,4 +1,4 @@
-defmodule AbsintheExtra.Notation.Policy.Middleware do
+defmodule Absinthe.Extra.Notation.Policy.Middleware do
   @moduledoc false
 
   @behaviour Absinthe.Middleware

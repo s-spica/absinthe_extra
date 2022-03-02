@@ -1,4 +1,4 @@
-defmodule AbsintheExtra.Phase.Introspection do
+defmodule Absinthe.Extra.Phase.Introspection do
   @moduledoc false
 
   use Absinthe.Phase

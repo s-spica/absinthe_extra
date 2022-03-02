@@ -1,4 +1,4 @@
-defmodule AbsintheExtra.Notation.Policy.Schema do
+defmodule Absinthe.Extra.Notation.Policy.Schema do
   @moduledoc false
 
   alias Absinthe.Resolution

@@ -1,4 +1,4 @@
-defmodule AbsintheExtra.Case.Assertion do
+defmodule Absinthe.Extra.Case.Assertion do
   @moduledoc false
 
   use ExUnit.CaseTemplate

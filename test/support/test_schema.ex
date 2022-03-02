@@ -1,4 +1,4 @@
-defmodule AbsintheExtra.Support.TestSchema do
+defmodule Absinthe.Extra.Support.TestSchema do
   @moduledoc false
 
   use Absinthe.Schema

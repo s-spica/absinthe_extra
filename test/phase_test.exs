@@ -1,4 +1,4 @@
-defmodule AbsintheExtra.PhaseTest do
+defmodule Absinthe.Extra.PhaseTest do
   use ExUnit.Case, async: true
   use Plug.Test
 
@@ -16,7 +16,7 @@ defmodule AbsintheExtra.PhaseTest do
       opts =
         Absinthe.Plug.init(
           schema: TestSchema,
-          pipeline: {AbsintheExtra.Phase.Introspection, :pipeline}
+          pipeline: {Absinthe.Extra.Phase.Introspection, :pipeline}
         )
 
       assert %{status: 200, resp_body: body} =

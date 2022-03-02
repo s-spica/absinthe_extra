@@ -1,4 +1,4 @@
-defmodule AbsintheExtra.Support.TestEndpoint do
+defmodule Absinthe.Extra.Support.TestEndpoint do
   @moduledoc false
 
   use Phoenix.Endpoint, otp_app: :absinthe_extra
@@ -6,7 +6,7 @@ defmodule AbsintheExtra.Support.TestEndpoint do
 
   use Absinthe.Phoenix.Endpoint
 
-  alias AbsintheExtra.Support.TestSchema
+  alias Absinthe.Extra.Support.TestSchema
 
   scope "/", Absinthe do
     forward "/graphql", Plug, schema: TestSchema, json_code: Jason

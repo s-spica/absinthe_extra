@@ -1,8 +1,8 @@
-defmodule AbsintheExtra.NotationTest do
+defmodule Absinthe.Extra.NotationTest do
   use ExUnit.Case, async: true
 
   defmodule TestPolicy do
-    import AbsintheExtra.Notation.Policy.Schema
+    import Absinthe.Extra.Notation.Policy.Schema
 
     def view_allow(resolution, _) do
       allow(resolution)
@@ -16,7 +16,7 @@ defmodule AbsintheExtra.NotationTest do
   defmodule TestSchema do
     use Absinthe.Schema
 
-    import AbsintheExtra.Notation.Policy
+    import Absinthe.Extra.Notation.Policy
 
     query do
       field :allow, :boolean do

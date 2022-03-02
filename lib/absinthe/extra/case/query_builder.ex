@@ -1,11 +1,11 @@
-defmodule AbsintheExtra.Case.QueryBuilder do
+defmodule Absinthe.Extra.Case.QueryBuilder do
   @moduledoc false
 
   alias Absinthe.Type
 
-  import AbsintheExtra.Helper
+  import Absinthe.Extra.Helper
 
-  require AbsintheExtra.Helper
+  require Absinthe.Extra.Helper
 
   @schema Application.compile_env(:absinthe_extra, :schema)
   @complexity Application.compile_env(:absinthe_extra, :complexity)

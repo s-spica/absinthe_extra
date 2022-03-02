@@ -1,15 +1,15 @@
-defmodule AbsintheExtra.CaseTest do
+defmodule Absinthe.Extra.CaseTest do
   use ExUnit.Case, async: true
 
-  import AbsintheExtra.Case.Assertion
-  import AbsintheExtra.Case.QueryBuilder
+  import Absinthe.Extra.Case.Assertion
+  import Absinthe.Extra.Case.QueryBuilder
   import Phoenix.ConnTest
 
-  alias AbsintheExtra.Support.TestEndpoint
-  alias AbsintheExtra.Support.TestSchema
+  alias Absinthe.Extra.Support.TestEndpoint
+  alias Absinthe.Extra.Support.TestSchema
 
   setup do
-    opts = [strategy: :one_for_one, name: AbsintheExtra.Supervisor]
+    opts = [strategy: :one_for_one, name: Absinthe.Extra.Supervisor]
     Supervisor.start_link([TestEndpoint], opts)
 
     %{conn: build_conn()}

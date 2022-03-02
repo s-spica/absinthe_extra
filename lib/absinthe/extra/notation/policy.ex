@@ -1,8 +1,8 @@
-defmodule AbsintheExtra.Notation.Policy do
+defmodule Absinthe.Extra.Notation.Policy do
   @moduledoc false
 
   alias Absinthe.Schema.Notation
-  alias AbsintheExtra.Notation.Policy.Middleware
+  alias Absinthe.Extra.Notation.Policy.Middleware
 
   defmacro policy(module, func, opts \\ []) do
     quote do

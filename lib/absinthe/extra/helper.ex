@@ -1,4 +1,4 @@
-defmodule AbsintheExtra.Helper do
+defmodule Absinthe.Extra.Helper do
   @moduledoc false
 
   import :erlang, only: [map_get: 2]
