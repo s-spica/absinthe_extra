@@ -165,39 +165,37 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
   end
 
   def fields(%Type.Object{fields: fields}, opts) do
-    if is_over_complexity?(opts) do
-      :_skip
-    else
-      next_opts = reduce_complexity(opts)
+    next_opts = reduce_complexity(opts)
 
-      fields
-      |> Map.delete(:__typename)
-      |> Enum.map(fn
-        {identifier, type} ->
-          to_list_item(identifier, type, next_opts)
-      end)
-      |> exclude_skip()
-    end
+    fields
+    |> Map.delete(:__typename)
+    |> Enum.map(fn
+      {identifier, type} ->
+        to_list_children(identifier, type, next_opts)
+    end)
+    |> exclude_skip()
   end
 
   def fields(type, opts)
       when is_module(type, Type.Interface) or is_module(type, Type.Union) do
-    if is_over_complexity?(opts) do
-      :_skip
+    next_opts = reduce_complexity(opts)
+
+    concrete_type_fields =
+      opts
+      |> fetch_schema()
+      |> Absinthe.Schema.concrete_types(type)
+      |> Enum.map(fn
+        %Type.Object{identifier: identifier} = object ->
+          to_list_children(identifier, object, next_opts)
+
+        _ ->
+          :_skip
+      end)
+      |> exclude_skip()
+
+    if [] == concrete_type_fields do
+      []
     else
-      concrete_type_fields =
-        opts
-        |> fetch_schema()
-        |> Absinthe.Schema.concrete_types(type)
-        |> Enum.map(fn
-          %Type.Object{identifier: identifier} = object ->
-            to_list_item(identifier, object, opts)
-
-          _ ->
-            :_skip
-        end)
-        |> exclude_skip()
-
       [{:_on, concrete_type_fields}]
     end
   end
@@ -207,17 +205,30 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
 
   defp exclude_skip(list), do: Enum.reject(list, &(&1 == :_skip))
 
-  defp to_list_item(identifier, type, opts) do
-    case fields(type, opts) do
-      :_identifier -> identifier
-      children when is_list(children) -> {identifier, children}
-      _ -> :_skip
+  defp to_list_children(identifier, type, opts) do
+    complexity = opts[:complexity]
+
+    if complexity < 0 do
+      :_skip
+    else
+      case fields(type, opts) do
+        :_identifier ->
+          identifier
+
+        # object without children is invalid
+        [] ->
+          :_skip
+
+        children when is_list(children) ->
+          {identifier, children}
+
+        _ ->
+          :_skip
+      end
     end
   end
 
   defp fetch_schema(opts), do: Keyword.get(opts, :schema, @schema)
-
-  defp is_over_complexity?(opts), do: Keyword.get(opts, :complexity) < 0
 
   defp reduce_complexity(opts) do
     {_, next} = Keyword.get_and_update!(opts, :complexity, &{&1, &1 - 1})
@@ -260,68 +271,89 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
 
   @doc """
   Pick query fields
-
-  key can be specified nested fields `[:field, nested: [:field]]`
   """
   @spec pick_fields(query_fields :: keyword, drop_fields :: [atom]) ::
           keyword
   def pick_fields(fields, keys)
       when is_list(fields) and is_list(keys) do
+    field_keys =
+      fields
+      |> Enum.map(fn
+        {:_on, field, _} -> field
+        {:query, field, _, _} -> field
+        {field, _} -> field
+        field when is_atom(field) -> field
+      end)
+
+    hit_keys =
+      keys
+      |> Enum.map(fn
+        {key, _} when is_atom(key) -> key
+        key when is_atom(key) -> key
+      end)
+      |> Enum.filter(fn key -> key in field_keys end)
+
+    has_hit = length(hit_keys) > 0
+
+    pick_key = fn keys, field ->
+      keys
+      |> Enum.find(fn
+        {key, _} -> key == field
+        key when is_atom(key) -> key == field
+      end)
+    end
+
     Enum.map(fields, fn
-      {:_on, field, children} ->
+      {:_on, field, children} = fields ->
         keys
-        |> Enum.find(fn
-          {key, _} -> key == field
-          key when is_atom(key) -> key == field
-        end)
+        |> pick_key.(field)
         |> case do
           nil ->
-            :_skip
+            if has_hit, do: :_skip, else: fields
 
           key when is_atom(key) ->
-            {:_on, field, children}
+            fields
 
           {_, children_keys} ->
             {:_on, field, pick_fields(children, children_keys)}
         end
 
-      {:query, field, arg, children} ->
+      {:query, field, arg, children} = fields ->
         keys
-        |> Enum.find(fn
-          {key, _} -> key == field
-          key when is_atom(key) -> key == field
-        end)
+        |> pick_key.(field)
         |> case do
           nil ->
-            :_skip
+            if has_hit, do: :_skip, else: fields
 
           key when is_atom(key) ->
-            {:query, field, arg, children}
+            fields
 
           {_, children_keys} ->
             {:query, field, arg, pick_fields(children, children_keys)}
         end
 
-      {field, children} ->
+      {field, children} = fields ->
         keys
-        |> Enum.find(fn
-          {key, _} -> key == field
-          key when is_atom(key) -> key == field
-        end)
+        |> pick_key.(field)
         |> case do
-          nil -> :_skip
-          key when is_atom(key) -> {field, children}
-          {_, children_keys} -> {field, pick_fields(children, children_keys)}
+          nil ->
+            if has_hit, do: :_skip, else: fields
+
+          key when is_atom(key) ->
+            fields
+
+          {_, children_keys} ->
+            {field, pick_fields(children, children_keys)}
         end
 
-      field ->
-        keys =
-          Enum.map(keys, fn
-            {key, _} -> key
-            key when is_atom(key) -> key
-          end)
-
-        if field in keys, do: field, else: :_skip
+      field when is_atom(field) ->
+        keys
+        |> pick_key.(field)
+        |> case do
+          nil -> if has_hit, do: :_skip, else: field
+          {key, _} when is_atom(key) -> field
+          key when is_atom(key) -> field
+        end
     end)
     |> exclude_skip()
   end

@@ -42,16 +42,15 @@ defmodule Absinthe.Extra.CaseTest do
     end
 
     test "query: interface_user", %{conn: conn} do
-      fields = fields(:interface_user, complexity: 2, schema: TestSchema)
+      fields = fields(:interface_user, complexity: 4, schema: TestSchema)
 
       query = graphql_query(:interface_user, fields)
 
       assert "{interface_user {... on InterfaceConcreteUser  " <>
                "{name, user {... on InterfaceConcreteUser  " <>
-               "{name, user {... on InterfaceConcreteUser  " <>
-               "{name}}}}}}}" == query
+               "{name}}}}}" == query
 
-      assert %{name: "name", user: %{name: "name", user: %{name: "name"}}} ==
+      assert %{name: "name", user: %{name: "name"}} ==
                graphql_success(conn, query)
     end
 
