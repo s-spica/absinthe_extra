@@ -9,7 +9,7 @@ defmodule Absinthe.Extra.Support.TestSchema do
       resolve fn _, _ -> {:ok, %{name: "name", age: :one, id: "id"}} end
     end
 
-    field :argument_field_user, :argument_field_user do
+    field :argument_user, :argument_user do
       arg :parent, non_null(:boolean)
       resolve fn _, _ -> {:ok, %{name: "name"}} end
     end
@@ -18,7 +18,7 @@ defmodule Absinthe.Extra.Support.TestSchema do
       resolve fn _, _ -> {:ok, %{name: "name"}} end
     end
 
-    field :nested_field_user, :nested_field_user do
+    field :nested_user, :nested_user do
       resolve fn _, _ -> {:ok, %{name: "name", user: %{name: "name"}}} end
     end
 
@@ -50,12 +50,12 @@ defmodule Absinthe.Extra.Support.TestSchema do
 
   ## argument user
 
-  object :argument_field_user do
+  object :argument_user do
     field :name, :string do
       arg :child, non_null(:boolean)
     end
 
-    field :user, :argument_field_user do
+    field :user, :argument_user do
       arg :name, non_null(:string)
 
       resolve fn _, _ -> {:ok, %{name: "name"}} end
@@ -78,8 +78,8 @@ defmodule Absinthe.Extra.Support.TestSchema do
 
   ## nested user
 
-  object :nested_field_user do
+  object :nested_user do
     field :name, :string
-    field :user, :nested_field_user
+    field :user, :nested_user
   end
 end

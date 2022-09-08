@@ -54,13 +54,13 @@ defmodule Absinthe.Extra.CaseTest do
                graphql_success(conn, query)
     end
 
-    test "query: argument_field_user. ensure child is passed", %{conn: conn} do
-      fields = fields(:argument_field_user, complexity: 1)
+    test "query: argument_user. ensure child is passed", %{conn: conn} do
+      fields = fields(:argument_user, complexity: 1)
       fields = argument_fields(fields, name: [child: true])
 
-      query = graphql_query(:argument_field_user, [parent: true], fields)
+      query = graphql_query(:argument_user, [parent: true], fields)
 
-      assert "{argument_field_user(parent: true) {name(child: true)}}" == query
+      assert "{argument_user(parent: true) {name(child: true)}}" == query
       assert %{name: "name"} == graphql_success(conn, query)
     end
   end
@@ -72,14 +72,14 @@ defmodule Absinthe.Extra.CaseTest do
   end
 
   describe "drop_invalid_query_fields/1" do
-    test "query: argument_field_user. drop unset fields" do
+    test "query: argument_user. drop unset fields" do
       fields =
-        fields(:argument_field_user, complexity: 2)
+        fields(:argument_user, complexity: 2)
         |> drop_invalid_query_fields()
 
-      query = graphql_query(:argument_field_user, [parent: true], fields)
+      query = graphql_query(:argument_user, [parent: true], fields)
 
-      assert "{argument_field_user(parent: true)}" == query
+      assert "{argument_user(parent: true)}" == query
     end
   end
 
@@ -91,7 +91,7 @@ defmodule Absinthe.Extra.CaseTest do
 
     test "drop query fields" do
       assert [] ==
-               fields(:argument_field_user, complexity: 1, schema: TestSchema)
+               fields(:argument_user, complexity: 1, schema: TestSchema)
                |> argument_fields(name: [child: true])
                |> drop_fields([:name])
     end
