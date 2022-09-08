@@ -11,29 +11,41 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
   @complexity Application.compile_env(:absinthe_extra, :complexity)
 
   defmodule Query do
-    defstruct [:identifier, :non_null_args]
+    @enforce_keys [:type, :identifier, :non_null_args, :null_args]
+    defstruct [:type, :identifier, :non_null_args, :null_args]
 
-    def new(identifier, %{args: args}) when is_atom(identifier) do
+    def new(type, identifier, %{args: args}) when is_atom(identifier) do
       args
-      |> Enum.reduce(%__MODULE__{identifier: identifier, non_null_args: []}, fn
-        {identifier,
-         %Type.Argument{identifier: _, type: %Absinthe.Type.NonNull{}}},
-        acc ->
-          {_, acc} =
+      |> Enum.reduce(
+        %__MODULE__{
+          type: type,
+          identifier: identifier,
+          non_null_args: [],
+          null_args: []
+        },
+        fn
+          {identifier,
+           %Type.Argument{identifier: _, type: %Absinthe.Type.NonNull{}}},
+          %__MODULE__{non_null_args: non_null_args} = acc ->
+            %{acc | non_null_args: [identifier | non_null_args]}
+
+          {identifier, %Type.Argument{}},
+          %__MODULE__{null_args: null_args} = acc ->
+            %{acc | null_args: [identifier | null_args]}
+
+          {_, _}, acc ->
             acc
-            |> Map.get_and_update!(:non_null_args, fn args ->
-              {args, [identifier | args]}
-            end)
-
-          acc
-
-        {_, _}, acc ->
-          acc
-      end)
+        end
+      )
     end
 
-    def new(identifier, _) when is_atom(identifier),
-      do: %__MODULE__{identifier: identifier, non_null_args: []}
+    def new(type, identifier, _) when is_atom(identifier),
+      do: %__MODULE__{
+        type: type,
+        identifier: identifier,
+        non_null_args: [],
+        null_args: []
+      }
   end
 
   @doc """
@@ -245,12 +257,12 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
     else
       case fields(type, opts) do
         :_identifier ->
-          case Query.new(identifier, type) do
-            %Query{non_null_args: [_ | _]} = query ->
-              {:query, query, [], []}
-
-            %Query{non_null_args: []} ->
+          case Query.new(:field, identifier, type) do
+            %Query{non_null_args: [], null_args: []} ->
               identifier
+
+            %Query{} = query ->
+              {:query, query, [], []}
           end
 
         # object without children is invalid
@@ -258,12 +270,12 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
           :_skip
 
         children when is_list(children) ->
-          case Query.new(identifier, type) do
-            %Query{non_null_args: [_ | _]} = query ->
-              {:query, query, [], children}
-
-            %Query{non_null_args: []} ->
+          case Query.new(:object, identifier, type) do
+            %Query{non_null_args: [], null_args: []} ->
               {identifier, children}
+
+            %Query{} = query ->
+              {:query, query, [], children}
           end
 
         _ ->
@@ -334,29 +346,52 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
   @doc """
   Drop invalid query fields
   ex. having required arguments but they are not set
+
+  - `required_args` : required arguments can be specified additionally
   """
-  @spec drop_invalid_query_fields(query_fields :: keyword) :: keyword
-  def drop_invalid_query_fields(fields) when is_list(fields) do
+  @spec drop_invalid_query_fields(query_fields :: keyword) ::
+          keyword
+  def drop_invalid_query_fields(fields, opts \\ []) when is_list(fields) do
+    required_args = Keyword.get(opts, :required_args, [])
+
     Enum.map(fields, fn
-      {:query, %Query{non_null_args: non_null_args} = query, args, children} ->
-        is_invalid = MapSet.subset?(MapSet.new(args), MapSet.new(non_null_args))
+      {:query,
+       %Query{type: type, non_null_args: non_null_args, null_args: null_args} =
+           query, args, children} ->
+        required_args_set =
+          MapSet.intersection(
+            MapSet.new(null_args),
+            MapSet.new(required_args)
+          )
 
-        children = drop_invalid_query_fields(children)
+        arg_keys = Enum.into(args, [], fn {key, _} -> key end)
 
-        case {is_invalid, children} do
-          {true, _} -> :_skip
-          {false, []} -> :_skip
-          {false, children} -> {:query, query, args, children}
+        is_valid =
+          MapSet.subset?(
+            MapSet.union(MapSet.new(non_null_args), required_args_set),
+            MapSet.new(arg_keys)
+          )
+
+        children = drop_invalid_query_fields(children, opts)
+
+        case {is_valid, type, children} do
+          {false, _, _} -> :_skip
+          {true, :field, []} -> {:query, query, args, children}
+          {true, :object, []} -> :_skip
+          {true, _, children} -> {:query, query, args, children}
         end
 
+      {:query, field, args, children} when is_atom(field) ->
+        {:query, field, args, drop_invalid_query_fields(children, opts)}
+
       {:_on, field, children} ->
-        case drop_invalid_query_fields(children) do
+        case drop_invalid_query_fields(children, opts) do
           [] -> :_skip
           children -> {:_on, field, children}
         end
 
       {field, children} ->
-        case drop_invalid_query_fields(children) do
+        case drop_invalid_query_fields(children, opts) do
           [] -> :_skip
           children -> {field, children}
         end

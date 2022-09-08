@@ -91,6 +91,28 @@ defmodule Absinthe.Extra.CaseTest do
 
       assert "{optional_argument_user {name, user {name}}}" == query
     end
+
+    test "query: optional_argument_user. required_args" do
+      fields =
+        fields(:optional_argument_user, complexity: 2)
+        |> drop_invalid_query_fields(required_args: [:child])
+
+      query = graphql_query(:optional_argument_user, [], fields)
+
+      assert "{optional_argument_user}" == query
+    end
+
+    test "query: optional_argument_user. required_args with arguments" do
+      fields =
+        fields(:optional_argument_user, complexity: 2)
+        |> argument_fields(name: [child: true])
+        |> drop_invalid_query_fields(required_args: [:child])
+
+      query = graphql_query(:optional_argument_user, [], fields)
+
+      assert "{optional_argument_user {name(child: true), user {name(child: true)}}}" ==
+               query
+    end
   end
 
   describe "drop_fields/2" do
