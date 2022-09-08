@@ -335,17 +335,28 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
   def drop_invalid_query_fields(fields) when is_list(fields) do
     Enum.map(fields, fn
       {:query, %Query{non_null_args: non_null_args}, args, children} = field ->
-        if MapSet.subset?(MapSet.new(non_null_args), MapSet.new(args)) do
-          {:query, field, args, drop_invalid_query_fields(children)}
-        else
-          :_skip
+        has_invalid =
+          MapSet.subset?(MapSet.new(non_null_args), MapSet.new(args))
+
+        children = drop_invalid_query_fields(children)
+
+        case {has_invalid, children} do
+          {true, _} -> :_skip
+          {false, []} -> :_skip
+          {false, children} -> {:query, field, args, children}
         end
 
       {:_on, field, children} ->
-        {:_on, field, drop_invalid_query_fields(children)}
+        case drop_invalid_query_fields(children) do
+          [] -> :_skip
+          children -> {:_on, field, children}
+        end
 
       {field, children} ->
-        {field, drop_invalid_query_fields(children)}
+        case drop_invalid_query_fields(children) do
+          [] -> :_skip
+          children -> {field, children}
+        end
 
       field ->
         field
