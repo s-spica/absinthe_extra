@@ -10,6 +10,32 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
   @schema Application.compile_env(:absinthe_extra, :schema)
   @complexity Application.compile_env(:absinthe_extra, :complexity)
 
+  defmodule Query do
+    defstruct [:identifier, :non_null_args]
+
+    def new(identifier, %{args: args}) when is_atom(identifier) do
+      args
+      |> Enum.reduce(%__MODULE__{identifier: identifier, non_null_args: []}, fn
+        {identifier,
+         %Type.Argument{identifier: _, type: %Absinthe.Type.NonNull{}}},
+        acc ->
+          {_, acc} =
+            acc
+            |> Map.get_and_update!(:non_null_args, fn args ->
+              {args, [identifier | args]}
+            end)
+
+          acc
+
+        {_, _}, acc ->
+          acc
+      end)
+    end
+
+    def new(identifier, _) when is_atom(identifier),
+      do: %__MODULE__{identifier: identifier, non_null_args: []}
+  end
+
   @doc """
   Builds a Graphql query string.
   """
@@ -82,8 +108,14 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
   end
 
   defp prepare_field({:query, field, args, children})
-       when is_list(children) do
+       when is_atom(field) and is_list(children) do
     query = graphql_query(field, args, children)
+    trim(query)
+  end
+
+  defp prepare_field({:query, %Query{identifier: identifier}, args, children})
+       when is_atom(identifier) and is_list(children) do
+    query = graphql_query(identifier, args, children)
     trim(query)
   end
 
@@ -213,14 +245,26 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
     else
       case fields(type, opts) do
         :_identifier ->
-          identifier
+          case Query.new(identifier, type) do
+            %Query{non_null_args: [_ | _]} = query ->
+              {:query, query, [], []}
+
+            %Query{identifier: identifier, non_null_args: []} ->
+              identifier
+          end
 
         # object without children is invalid
         [] ->
           :_skip
 
         children when is_list(children) ->
-          {identifier, children}
+          case Query.new(identifier, type) do
+            %Query{non_null_args: [_ | _]} = query ->
+              {:query, query, [], children}
+
+            %Query{identifier: identifier, non_null_args: []} ->
+              {identifier, children}
+          end
 
         _ ->
           :_skip
@@ -241,32 +285,72 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
   @spec argument_fields(query_fields :: keyword, query_argument :: keyword) ::
           keyword
   def argument_fields(fields, args) when is_list(fields) and is_list(args) do
-    Enum.reduce(args, fields, fn {key, arg}, acc ->
-      insert_argument_fields(acc, key, arg)
+    Enum.reduce(args, fields, fn {key, args}, acc ->
+      insert_argument_fields(acc, key, args)
     end)
   end
 
-  defp insert_argument_fields(fields, key, arg)
+  defp insert_argument_fields(fields, key, args)
        when is_list(fields) and is_atom(key) do
     Enum.map(fields, fn
-      {:_on, field, children} when field == key ->
-        {:query, key, arg, children}
+      {:query, %Query{identifier: query_key} = query, query_args, children}
+      when key == query_key ->
+        query_args = Map.merge(Map.new(query_args), Map.new(args))
 
-      {:_on, field, children} when field != key ->
-        insert_argument_fields(children, key, arg)
+        {:query, query, query_args, insert_argument_fields(children, key, args)}
+
+      {:query, query_key, query_args, children} when key == query_key ->
+        query_args = Map.merge(Map.new(query_args), Map.new(args))
+
+        {:query, query_key, query_args,
+         insert_argument_fields(children, key, args)}
+
+      {:query, query_key, query_args, children} when key != query_key ->
+        {:query, query_key, query_args,
+         insert_argument_fields(children, key, args)}
+
+      # union/interface can not have argument
+      {:_on, field, children} ->
+        {:on_, field, insert_argument_fields(children, key, args)}
 
       {field, children} when field == key ->
-        {:query, key, arg, children}
+        {:query, key, args, children}
 
       {field, children} when field != key ->
-        {field, insert_argument_fields(children, key, arg)}
+        {field, insert_argument_fields(children, key, args)}
 
       field when field == key ->
-        {:query, key, arg, []}
+        {:query, key, args, []}
 
       field ->
         field
     end)
+  end
+
+  @doc """
+  Drop invalid query fields
+  ex. having required arguments but they are not set
+  """
+  @spec drop_invalid_query_fields(query_fields :: keyword) :: keyword
+  def drop_invalid_query_fields(fields) when is_list(fields) do
+    Enum.map(fields, fn
+      {:query, %Query{non_null_args: non_null_args}, args, children} = field ->
+        if MapSet.subset?(MapSet.new(non_null_args), MapSet.new(args)) do
+          {:query, field, args, drop_invalid_query_fields(children)}
+        else
+          :_skip
+        end
+
+      {:_on, field, children} ->
+        {:_on, field, drop_invalid_query_fields(children)}
+
+      {field, children} ->
+        {field, drop_invalid_query_fields(children)}
+
+      field ->
+        field
+    end)
+    |> exclude_skip()
   end
 
   @doc """
@@ -290,11 +374,18 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
       {:_on, field, children} when field != key ->
         drop_field(children, key)
 
+      {:query, %Query{identifier: field}, _, _} when field == key ->
+        :_skip
+
+      {:query, %Query{identifier: field} = query, args, children}
+      when field != key ->
+        {:query, query, args, drop_field(children, key)}
+
       {:query, field, _, _} when field == key ->
         :_skip
 
-      {:query, field, arg, children} when field != key ->
-        {:query, field, arg, drop_field(children, key)}
+      {:query, field, args, children} when field != key ->
+        {:query, field, args, drop_field(children, key)}
 
       {field, _} when field == key ->
         :_skip
