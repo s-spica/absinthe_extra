@@ -249,7 +249,7 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
             %Query{non_null_args: [_ | _]} = query ->
               {:query, query, [], []}
 
-            %Query{identifier: identifier, non_null_args: []} ->
+            %Query{non_null_args: []} ->
               identifier
           end
 
@@ -262,7 +262,7 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
             %Query{non_null_args: [_ | _]} = query ->
               {:query, query, [], children}
 
-            %Query{identifier: identifier, non_null_args: []} ->
+            %Query{non_null_args: []} ->
               {identifier, children}
           end
 
@@ -297,6 +297,10 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
       when key == query_key ->
         query_args = Map.merge(Map.new(query_args), Map.new(args))
 
+        {:query, query, query_args, insert_argument_fields(children, key, args)}
+
+      {:query, %Query{identifier: query_key} = query, query_args, children}
+      when key != query_key ->
         {:query, query, query_args, insert_argument_fields(children, key, args)}
 
       {:query, query_key, query_args, children} when key == query_key ->
@@ -334,7 +338,7 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
   @spec drop_invalid_query_fields(query_fields :: keyword) :: keyword
   def drop_invalid_query_fields(fields) when is_list(fields) do
     Enum.map(fields, fn
-      {:query, %Query{non_null_args: non_null_args}, args, children} = field ->
+      {:query, %Query{non_null_args: non_null_args} = query, args, children} ->
         has_invalid =
           MapSet.subset?(MapSet.new(non_null_args), MapSet.new(args))
 
@@ -343,7 +347,7 @@ defmodule Absinthe.Extra.Case.QueryBuilder do
         case {has_invalid, children} do
           {true, _} -> :_skip
           {false, []} -> :_skip
-          {false, children} -> {:query, field, args, children}
+          {false, children} -> {:query, query, args, children}
         end
 
       {:_on, field, children} ->
