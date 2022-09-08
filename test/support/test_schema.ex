@@ -14,6 +14,11 @@ defmodule Absinthe.Extra.Support.TestSchema do
       resolve fn _, _ -> {:ok, %{name: "name"}} end
     end
 
+    field :optional_argument_user, :optional_argument_user do
+      arg :parent, :boolean
+      resolve fn _, _ -> {:ok, %{name: "name"}} end
+    end
+
     field :interface_user, :interface_user do
       resolve fn _, _ -> {:ok, %{name: "name"}} end
     end
@@ -62,6 +67,18 @@ defmodule Absinthe.Extra.Support.TestSchema do
     end
 
     field :optional_user, :argument_user do
+      arg :name, :string
+
+      resolve fn _, _ -> {:ok, %{name: "name"}} end
+    end
+  end
+
+  object :optional_argument_user do
+    field :name, :string do
+      arg :child, :boolean
+    end
+
+    field :user, :optional_argument_user do
       arg :name, :string
 
       resolve fn _, _ -> {:ok, %{name: "name"}} end

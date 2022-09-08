@@ -74,12 +74,22 @@ defmodule Absinthe.Extra.CaseTest do
   describe "drop_invalid_query_fields/1" do
     test "query: argument_user. drop unset fields" do
       fields =
-        fields(:argument_user, complexity: 3)
+        fields(:argument_user, complexity: 2)
         |> drop_invalid_query_fields()
 
       query = graphql_query(:argument_user, [parent: true], fields)
 
       assert "{argument_user(parent: true)}" == query
+    end
+
+    test "query: optional_argument_user. drop unset fields" do
+      fields =
+        fields(:optional_argument_user, complexity: 2)
+        |> drop_invalid_query_fields()
+
+      query = graphql_query(:optional_argument_user, [], fields)
+
+      assert "{optional_argument_user {name, user {name}}}" == query
     end
   end
 
