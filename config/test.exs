@@ -14,3 +14,6 @@ config :absinthe_extra, Absinthe.Extra.Support.TestEndpoint,
   secret_key_base: "xxxx",
   url: [http: "localhost"],
   server: false
+
+config :absinthe_extra, joken: Absinthe.Extra.Support.TestJoken
+config :joken, default_signer: "secret"
