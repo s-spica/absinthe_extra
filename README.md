@@ -69,3 +69,25 @@ this phase is to block introspection
       schema: Schema,
       pipeline: {Phase.Introspection, :pipeline}
 ```
+
+## Relay Signed Query
+
+Relay provides [persisted query](https://relay.dev/docs/guides/persisted-queries/) out of the box but maintaining static query ID can be a pain.
+This provides dynamic persisted query called signed query which is JWT instead of hashed string so it can be decoded on demand.
+
+### How to use
+
+```elixir
+    scope "/relay" do
+      post "/persisting",
+          Absinthe.Extra.Controller.RelaySignedQueryController,
+          :persisting
+
+      post "/graphql",
+          Absinthe.Plug,
+          schema: TestSchema,
+          json_code: Jason,
+          document_providers:
+            Absinthe.Extra.Plug.RelaySignedQueryDocumentProvider
+    end
+```
